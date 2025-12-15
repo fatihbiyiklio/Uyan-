@@ -6,11 +6,12 @@ import { PrayerTimeCard } from "./PrayerTimeCard";
 import { Loader2, MapPin, AlertCircle } from "lucide-react";
 
 import { useNotification } from "../hooks/useNotification";
-// Placeholder beep sound
-const BEEP_URL = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
+import { useApp } from "../context/AppContext";
+import { getSoundUrl } from "./SoundSelector";
 
 export function Dashboard() {
     const { coords, loading: locLoading, error: locError, city } = useLocation();
+    const { sound } = useApp();
     const { timings, date, loading: timesLoading, error: timesError } = usePrayerTimes({
         latitude: coords?.latitude ?? null,
         longitude: coords?.longitude ?? null,
@@ -19,8 +20,6 @@ export function Dashboard() {
     const [timeLeft, setTimeLeft] = useState<string>("");
     const [nextPrayerName, setNextPrayerName] = useState<string>("");
     const { sendNotification } = useNotification();
-    // Using direct Audio instantiation for now as hook might re-create on render if not careful, 
-    // but let's stick to simple logic inside interval.
 
     useEffect(() => {
         if (!timings) return;
@@ -36,13 +35,14 @@ export function Dashboard() {
                 // Better: check if we just crossed 0? Or just checking == 0 is usually fine for 1s interval.
                 if (next.remainingSeconds === 0) {
                     sendNotification(`${next.name} Vakti Girdi!`, { body: "Namaz vakti geldi." });
-                    new Audio(BEEP_URL).play().catch(e => console.log(e));
+                    const audioUrl = getSoundUrl(sound);
+                    new Audio(audioUrl).play().catch(e => console.log(e));
                 }
             }
         }, 1000);
 
         return () => clearInterval(timer);
-    }, [timings, sendNotification]);
+    }, [timings, sendNotification, sound]);
 
     if (locLoading || timesLoading) {
         return (

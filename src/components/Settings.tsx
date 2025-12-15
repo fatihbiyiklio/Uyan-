@@ -4,6 +4,7 @@ import { Card } from "./ui/card";
 import { useNotification } from "../hooks/useNotification";
 import { ThemeSelector } from "./ThemeSelector";
 import { LocationSelector } from "./LocationSelector";
+import { SoundSelector } from "./SoundSelector";
 
 export function SettingsPage() {
     const { permission, requestPermission } = useNotification();
@@ -66,6 +67,10 @@ export function SettingsPage() {
 
                 <Card className="p-4">
                     <ThemeSelector />
+                </Card>
+
+                <Card className="p-4">
+                    <SoundSelector />
                 </Card>
 
                 <Card className="p-4">

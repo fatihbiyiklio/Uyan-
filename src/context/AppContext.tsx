@@ -15,8 +15,10 @@ interface LocationData {
 interface AppState {
     location: LocationData;
     themeColor: string;
+    sound: string;
     setLocation: (data: LocationData) => void;
     setThemeColor: (color: string) => void;
+    setSound: (sound: string) => void;
 }
 
 const AppContext = createContext<AppState | undefined>(undefined);
@@ -39,6 +41,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return 'blue';
     });
 
+    const [sound, setSoundState] = useState<string>(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('uyan_notification_sound') || 'beep';
+        }
+        return 'beep';
+    });
+
     const setLocation = (data: LocationData) => {
         setLocationState(data);
         localStorage.setItem('uyan_location', JSON.stringify(data));
@@ -51,12 +60,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         updateThemeColor(color);
     };
 
+    const setSound = (id: string) => {
+        setSoundState(id);
+        localStorage.setItem('uyan_notification_sound', id);
+    };
+
     useEffect(() => {
         updateThemeColor(themeColor);
     }, [themeColor]);
 
     return (
-        <AppContext.Provider value={{ location, themeColor, setLocation, setThemeColor }}>
+        <AppContext.Provider value={{ location, themeColor, sound, setLocation, setThemeColor, setSound }}>
             {children}
         </AppContext.Provider>
     );
