@@ -107,7 +107,17 @@ export function Dashboard() {
             </div>
 
             {/* Countdown Hero */}
-            <div className="flex flex-col items-center justify-center py-8 space-y-2 relative group" onClick={enableBackgroundMode}>
+            <div className="flex flex-col items-center justify-center py-8 space-y-2 relative group"
+                onClick={() => {
+                    // Only navigate to settings if disabled, logic handled inside hook or wrapper 
+                    // actually let's handle it here for better UX
+                    if (!useApp().backgroundKeepAlive) {
+                        alert("Bu özelliği kullanmak için lütfen Ayarlar'dan 'Kilit Ekranı Sayacı'nı açın.");
+                        // Optional: could navigate to settings
+                    } else {
+                        enableBackgroundMode();
+                    }
+                }}>
                 <div className="text-lg font-medium text-muted-foreground">
                     {ramadanMode && nextPrayerName === 'Akşam' ? 'İftara Kalan Süre' : `${nextPrayerName} Vaktine Kalan`}
                 </div>

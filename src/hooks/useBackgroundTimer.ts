@@ -5,7 +5,7 @@ import { getNextPrayer } from '../utils/time';
 import { useNotification } from './useNotification';
 
 export function useBackgroundTimer() {
-    const { location } = useApp();
+    const { location, backgroundKeepAlive } = useApp();
     const { timings } = usePrayerTimes({
         latitude: location.coords?.latitude ?? null,
         longitude: location.coords?.longitude ?? null
@@ -20,10 +20,22 @@ export function useBackgroundTimer() {
     const oscillatorRef = useRef<OscillatorNode | null>(null);
     const isPlayingRef = useRef(false);
 
+    useEffect(() => {
+        if (!backgroundKeepAlive) {
+            stopAudio();
+        }
+        return () => {
+            // Cleanup on unmount only if we want to stop it when leaving component
+            // But we want it persistent. However, if setting changes to false, we stop.
+        };
+    }, [backgroundKeepAlive]);
+
     // Initial check for AudioContext support
     useEffect(() => {
         return () => {
-            stopAudio();
+            // We don't necessarily want to stop on unmount if it's "background" mode, 
+            // but for SPA navigations maybe we do? 
+            // Actually, keep it alive unless setting changes.
         };
     }, []);
 
@@ -95,6 +107,8 @@ export function useBackgroundTimer() {
 
     // Public method to start the engine
     const enableBackgroundMode = async () => {
+        if (!backgroundKeepAlive) return;
+
         if (isPlayingRef.current) {
             sendNotification("Arka Plan Modu Zaten Aktif", { body: "Sayaç çalışıyor." });
             return;

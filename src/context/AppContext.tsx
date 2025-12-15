@@ -38,6 +38,9 @@ interface AppContextType {
     // Features
     ramadanMode: boolean;
     setRamadanMode: (enabled: boolean) => void;
+    // Background Mode (Battery Intensive)
+    backgroundKeepAlive: boolean;
+    setBackgroundKeepAlive: (enabled: boolean) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -156,6 +159,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('ramadanMode', String(ramadanMode));
     }, [ramadanMode]);
 
+    // --- Background Keep Alive ---
+    const [backgroundKeepAlive, setBackgroundKeepAlive] = useState<boolean>(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('backgroundKeepAlive') === 'true';
+        }
+        return false; // Default false for battery saving
+    });
+
+    useEffect(() => {
+        localStorage.setItem('backgroundKeepAlive', String(backgroundKeepAlive));
+    }, [backgroundKeepAlive]);
+
     return (
         <AppContext.Provider value={{
             theme,
@@ -170,7 +185,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             ramadanMode,
             setRamadanMode,
             enabledNotifications,
-            toggleNotification
+            toggleNotification,
+            backgroundKeepAlive,
+            setBackgroundKeepAlive
         }}>
             {children}
         </AppContext.Provider>
