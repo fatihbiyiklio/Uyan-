@@ -9,7 +9,7 @@ import { SoundSelector } from "./SoundSelector";
 
 export function SettingsPage() {
     const { permission, requestPermission } = useNotification();
-    const { ramadanMode, setRamadanMode, enabledNotifications, toggleNotification, theme, setTheme } = useApp();
+    const { ramadanMode, setRamadanMode, enabledNotifications, toggleNotification, theme, setTheme, backgroundKeepAlive, setBackgroundKeepAlive } = useApp();
 
     const clearData = () => {
         if (confirm("Konum verileri sıfırlanacak ve sayfa yenilenecek. Onaylıyor musunuz?")) {
@@ -116,8 +116,8 @@ export function SettingsPage() {
                         <input
                             type="checkbox"
                             className="sr-only peer"
-                            checked={useApp().backgroundKeepAlive}
-                            onChange={(e) => useApp().setBackgroundKeepAlive(e.target.checked)}
+                            checked={backgroundKeepAlive}
+                            onChange={(e) => setBackgroundKeepAlive(e.target.checked)}
                         />
                         <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-primary/20 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
                     </label>
