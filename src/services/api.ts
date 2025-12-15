@@ -17,18 +17,12 @@ export async function getPrayerTimesByCity(city: string, country: string = "Turk
     return response.json();
 }
 
-export async function getPrayerTimesByCoordinates(lat: number, lng: number): Promise<APIResponse> {
-    // Get today's timestamp to avoid caching issues or ensuring we get for 'today'
-    // Actually timings endpoint takes timestamp or defaults to today. 'timings' endpoint is simpler.
-    // We use `timings/<date>` or just `timings` (which is current date)
-    // Let's use `timings` endpoint with lat/lng
-
-    // Get current date string DD-MM-YYYY if needed, but the endpoint handles 'current' if we use `timings`
-    // Wait, there is `/timings/:date` endpoint.
-    const date = Math.floor(Date.now() / 1000); // Unix timestamp
+export async function getPrayerTimesByCoordinates(lat: number, lng: number, dateObj: Date = new Date()): Promise<APIResponse> {
+    // Aladhan API accepts Unix timestamp for specific dates
+    const timestamp = Math.floor(dateObj.getTime() / 1000);
 
     const response = await fetch(
-        `${BASE_URL}/timings/${date}?latitude=${lat}&longitude=${lng}&method=${DIYANET_METHOD}`
+        `${BASE_URL}/timings/${timestamp}?latitude=${lat}&longitude=${lng}&method=${DIYANET_METHOD}`
     );
 
     if (!response.ok) {

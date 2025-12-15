@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "../hooks/useLocation";
 import { useQibla } from "../hooks/useQibla";
-import { Compass, ArrowUp } from "lucide-react";
+import { Compass, ArrowUp, LocateFixed } from "lucide-react";
 import { cn } from "../lib/utils";
 
 export function QiblaCompass() {
@@ -85,66 +85,96 @@ export function QiblaCompass() {
     if (locLoading) return <div className="p-10 text-center">Konum aranıyor...</div>;
     if (locError) return <div className="p-10 text-center text-destructive">{locError}</div>;
 
+    const isAligned = qiblaAngle !== null && heading !== null && Math.abs(heading - qiblaAngle) < 5;
+
     return (
-        <div className="flex flex-col items-center justify-center p-4 space-y-8 h-[80vh]">
+        <div className="flex flex-col items-center justify-center p-4 space-y-12 min-h-[70vh]">
             <div className="text-center space-y-2">
-                <h2 className="text-2xl font-bold">Kıble Bulucu</h2>
-                <p className="text-muted-foreground">Telefonunuzu düz bir zeminde tutun.</p>
+                <h2 className="text-2xl font-bold tracking-tight">Kıble Bulucu</h2>
                 {qiblaAngle !== null && (
-                    <p className="text-sm">Kıble Açısı: {qiblaAngle.toFixed(1)}°</p>
+                    <div className="inline-flex items-center px-3 py-1 rounded-full bg-secondary text-xs font-medium">
+                        <LocateFixed className="w-3 h-3 mr-2" />
+                        Kıble Açısı: {qiblaAngle.toFixed(1)}°
+                    </div>
                 )}
             </div>
 
             {!permissionGranted ? (
                 <button
                     onClick={requestAccess}
-                    className="bg-primary text-primary-foreground px-4 py-2 rounded-lg"
+                    className="bg-primary text-primary-foreground px-6 py-3 rounded-full font-medium shadow-lg hover:opacity-90 transition-opacity"
                 >
                     Pusulayı Başlat
                 </button>
             ) : (
-                <div className="relative h-64 w-64">
-                    {/* Compass Disk */}
+                <div className="relative h-72 w-72">
+                    {/* Glowing effect when aligned */}
+                    <div className={cn(
+                        "absolute inset-0 rounded-full blur-xl transition-opacity duration-500",
+                        isAligned ? "bg-green-500/30 opacity-100" : "opacity-0"
+                    )} />
+
+                    {/* Outer Ring */}
+                    <div className="absolute inset-0 rounded-full border-[6px] border-muted/30" />
+
+                    {/* Rotating Compass Disk */}
                     <div
-                        className="absolute inset-0 rounded-full border-4 border-muted flex items-center justify-center shadow-2xl transition-transform duration-200 ease-out"
+                        className="absolute inset-2 rounded-full border-2 border-primary/20 bg-card shadow-2xl flex items-center justify-center transition-transform duration-300 ease-out"
                         style={{ transform: `rotate(${-1 * (heading ?? 0)}deg)` }}
                     >
-                        <div className="text-xs text-muted-foreground absolute top-2 font-bold">K</div>
-                        <div className="text-xs text-muted-foreground absolute bottom-2 font-bold">G</div>
-                        <div className="text-xs text-muted-foreground absolute right-2 font-bold">D</div>
-                        <div className="text-xs text-muted-foreground absolute left-2 font-bold">B</div>
+                        {/* NSEW Markers */}
+                        <div className="absolute top-4 text-xs font-bold text-primary">K</div>
+                        <div className="absolute bottom-4 text-xs font-bold text-muted-foreground">G</div>
+                        <div className="absolute right-4 text-xs font-bold text-muted-foreground">D</div>
+                        <div className="absolute left-4 text-xs font-bold text-muted-foreground">B</div>
 
-                        {/* Qibla Indicator on the Disk */}
+                        <div className="absolute inset-10 border border-dashed border-primary/10 rounded-full" />
+
+                        {/* Qibla Indicator (Target) */}
                         {qiblaAngle !== null && (
                             <div
-                                className="absolute h-1/2 w-1 bg-gradient-to-t from-transparent to-green-500 origin-bottom flex items-start justify-center pt-1"
+                                className="absolute h-1/2 w-8 origin-bottom flex flex-col items-center justify-start pt-2"
                                 style={{ transform: `rotate(${qiblaAngle}deg)`, bottom: '50%' }}
                             >
-                                <div className="h-3 w-3 rounded-full bg-green-500 shadow-lg shadow-green-500/50" />
+                                <div className={cn(
+                                    "w-3 h-3 rounded-full shadow-lg transition-colors duration-300",
+                                    isAligned ? "bg-green-500 shadow-green-500/50" : "bg-primary shadow-primary/40"
+                                )} />
+                                <div className={cn(
+                                    "w-0.5 h-full mt-1 bg-gradient-to-b from-primary/50 to-transparent",
+                                    isAligned && "from-green-500/50"
+                                )} />
                             </div>
                         )}
                     </div>
 
-                    {/* Static Center Marker (User) */}
+                    {/* Center Point */}
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                        <Compass className="h-10 w-10 text-muted-foreground opacity-20" />
+                        <div className="w-16 h-16 rounded-full bg-background/80 backdrop-blur border border-border flex items-center justify-center shadow-sm">
+                            <Compass className={cn(
+                                "h-8 w-8 transition-colors",
+                                isAligned ? "text-green-500" : "text-muted-foreground"
+                            )} />
+                        </div>
                     </div>
 
-                    {/* Main Arrow indicating 'Forward' of device */}
-                    <div className="absolute -top-6 left-1/2 -translate-x-1/2">
-                        <ArrowUp className="h-6 w-6 text-foreground" />
+                    {/* Device Direction Indicator (Top Arrow) */}
+                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 flex flex-col items-center animate-bounce">
+                        <ArrowUp className="h-6 w-6 text-primary fill-current" />
                     </div>
                 </div>
             )}
 
-            {qiblaAngle !== null && heading !== null && (
-                <div className={cn(
-                    "text-xl font-bold transition-colors",
-                    Math.abs(heading - qiblaAngle) < 5 ? "text-green-500" : "text-muted-foreground"
-                )}>
-                    {Math.abs(heading - qiblaAngle) < 5 ? "KIBDESİNİZ!" : "Döndürün"}
-                </div>
-            )}
+            <div className="h-8 flex items-center justify-center">
+                {heading !== null && (
+                    <div className={cn(
+                        "text-xl font-bold transition-all duration-300",
+                        isAligned ? "text-green-600 scale-110" : "text-muted-foreground"
+                    )}>
+                        {isAligned ? "KIBDESİNİZ!" : "Telefonu çevirin"}
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

@@ -12,20 +12,74 @@ interface LocationData {
     coords: Coords | null;
 }
 
-interface AppState {
-    location: LocationData;
+interface AppContextType {
+    // Theme Mode (Light/Dark/Gray)
+    theme: 'light' | 'dark' | 'gray';
+    toggleTheme: () => void;
+
+    // Accent Color
     themeColor: string;
-    sound: string;
-    setLocation: (data: LocationData) => void;
     setThemeColor: (color: string) => void;
-    setSound: (sound: string) => void;
+
+    // Location
+    location: LocationData;
+    setLocation: (data: LocationData) => void;
+
+    // Sound
+    sound: string;
+    setSound: (id: string) => void;
+
+    // Features
+    ramadanMode: boolean;
+    setRamadanMode: (enabled: boolean) => void;
 }
 
-const AppContext = createContext<AppState | undefined>(undefined);
+const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
+    // --- Theme Mode ---
+    const [theme, setTheme] = useState<'light' | 'dark' | 'gray'>(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('theme') as 'light' | 'dark' | 'gray' || 'light';
+        }
+        return 'light';
+    });
+
+    useEffect(() => {
+        const root = window.document.documentElement;
+        root.classList.remove('light', 'dark', 'gray');
+        root.classList.add(theme);
+        localStorage.setItem('theme', theme);
+    }, [theme]);
+
+    const toggleTheme = () => {
+        setTheme(prev => {
+            if (prev === 'light') return 'dark';
+            if (prev === 'dark') return 'gray';
+            return 'light';
+        });
+    };
+
+    // --- Accent Color ---
+    const [themeColor, setThemeColorState] = useState<string>(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('uyan_theme_color') || 'blue';
+        }
+        return 'blue';
+    });
+
+    const setThemeColor = (color: string) => {
+        setThemeColorState(color);
+        localStorage.setItem('uyan_theme_color', color);
+        updateThemeColor(color);
+    };
+
+    useEffect(() => {
+        updateThemeColor(themeColor);
+    }, [themeColor]);
+
+    // --- Location ---
     const [location, setLocationState] = useState<LocationData>(() => {
-        // Load from local storage if available
         if (typeof window !== 'undefined') {
             const saved = localStorage.getItem('uyan_location');
             if (saved) return JSON.parse(saved);
@@ -33,44 +87,49 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return { mode: 'auto', coords: null };
     });
 
-    const [themeColor, setThemeColorState] = useState<string>(() => {
-        if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('uyan_theme_color');
-            return saved || 'blue';
-        }
-        return 'blue';
-    });
-
-    const [sound, setSoundState] = useState<string>(() => {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem('uyan_notification_sound') || 'beep';
-        }
-        return 'beep';
-    });
-
     const setLocation = (data: LocationData) => {
         setLocationState(data);
         localStorage.setItem('uyan_location', JSON.stringify(data));
     };
 
-    const setThemeColor = (color: string) => {
-        setThemeColorState(color);
-        localStorage.setItem('uyan_theme_color', color);
-        // Update CSS variable for primary color
-        updateThemeColor(color);
-    };
+    // --- Sound ---
+    const [sound, setSoundState] = useState<string>(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('notificationSound') || 'beep';
+        }
+        return 'beep';
+    });
 
     const setSound = (id: string) => {
         setSoundState(id);
-        localStorage.setItem('uyan_notification_sound', id);
+        localStorage.setItem('notificationSound', id);
     };
 
+    // --- Ramadan Mode ---
+    const [ramadanMode, setRamadanMode] = useState<boolean>(() => {
+        if (typeof window !== 'undefined') {
+            return localStorage.getItem('ramadanMode') === 'true';
+        }
+        return false;
+    });
+
     useEffect(() => {
-        updateThemeColor(themeColor);
-    }, [themeColor]);
+        localStorage.setItem('ramadanMode', String(ramadanMode));
+    }, [ramadanMode]);
 
     return (
-        <AppContext.Provider value={{ location, themeColor, sound, setLocation, setThemeColor, setSound }}>
+        <AppContext.Provider value={{
+            theme,
+            toggleTheme,
+            themeColor,
+            setThemeColor,
+            location,
+            setLocation,
+            sound,
+            setSound,
+            ramadanMode,
+            setRamadanMode
+        }}>
             {children}
         </AppContext.Provider>
     );
@@ -85,7 +144,7 @@ function updateThemeColor(color: string) {
         red: "346.8 77.2% 49.8%",
         violet: "262.1 83.3% 57.8%",
         orange: "24.6 95% 53.1%",
-        gray: "220 9% 46%", // Zinc-500 like
+        gray: "220 9% 46%",
     };
 
     // Also update ring

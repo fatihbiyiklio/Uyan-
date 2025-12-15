@@ -3,18 +3,23 @@ import { useLocation } from "../hooks/useLocation";
 import { usePrayerTimes } from "../hooks/usePrayerTimes";
 import { getNextPrayer, formatTimeLeft } from "../utils/time";
 import { PrayerTimeCard } from "./PrayerTimeCard";
-import { Loader2, MapPin, AlertCircle } from "lucide-react";
+import { Loader2, MapPin, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
 
 import { useNotification } from "../hooks/useNotification";
 import { useApp } from "../context/AppContext";
 import { getSoundUrl } from "./SoundSelector";
+import { HadithCard } from "./HadithCard";
 
 export function Dashboard() {
     const { coords, loading: locLoading, error: locError, city } = useLocation();
-    const { sound } = useApp();
+    const { sound, ramadanMode } = useApp();
+    const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+
+    // Pass selectedDate to hook
     const { timings, date, loading: timesLoading, error: timesError } = usePrayerTimes({
         latitude: coords?.latitude ?? null,
         longitude: coords?.longitude ?? null,
+        date: selectedDate
     });
 
     const [timeLeft, setTimeLeft] = useState<string>("");
@@ -25,14 +30,15 @@ export function Dashboard() {
         if (!timings) return;
 
         const timer = setInterval(() => {
+            // Only calculate countdown for 'today' to avoid confusion, or handle next dat logic.
+            // For simplicity, if selectedDate is not today, we might show "vakit geçti" or just static times.
+            // But let's keep countdown running based on loaded timings.
+
             const next = getNextPrayer(timings);
             if (next) {
                 setTimeLeft(formatTimeLeft(next.remainingSeconds));
                 setNextPrayerName(next.name);
 
-                // Exact moment trigger (0 seconds remaining)
-                // We might miss exact 0 depending on interval drift, so checking <= 0 would trigger constantly.
-                // Better: check if we just crossed 0? Or just checking == 0 is usually fine for 1s interval.
                 if (next.remainingSeconds === 0) {
                     sendNotification(`${next.name} Vakti Girdi!`, { body: "Namaz vakti geldi." });
                     const audioUrl = getSoundUrl(sound);
@@ -43,6 +49,14 @@ export function Dashboard() {
 
         return () => clearInterval(timer);
     }, [timings, sendNotification, sound]);
+
+    const changeDate = (days: number) => {
+        const newDate = new Date(selectedDate);
+        newDate.setDate(newDate.getDate() + days);
+        setSelectedDate(newDate);
+    };
+
+    const isToday = selectedDate.toDateString() === new Date().toDateString();
 
     if (locLoading || timesLoading) {
         return (
@@ -62,7 +76,7 @@ export function Dashboard() {
                     onClick={() => window.location.reload()}
                     className="text-sm underline text-muted-foreground hover:text-foreground"
                 >
-                    Tekrar De
+                    Tekrar Dene
                 </button>
             </div>
         );
@@ -76,19 +90,32 @@ export function Dashboard() {
                     <MapPin className="h-4 w-4" />
                     <span className="font-medium">{city || "Konum Bekleniyor..."}</span>
                 </div>
-                <div>
-                    {date?.gregorian.date} ({date?.hijri.day} {date?.hijri.month.en} {date?.hijri.year})
+
+                <div className="flex items-center space-x-2">
+                    <button onClick={() => changeDate(-1)} className="p-1 hover:bg-secondary rounded-full transition-colors">
+                        <ChevronLeft className="h-4 w-4" />
+                    </button>
+                    <span className={!isToday ? "font-bold text-primary" : ""}>
+                        {date?.gregorian.date || "Tarih"}
+                    </span>
+                    <button onClick={() => changeDate(1)} className="p-1 hover:bg-secondary rounded-full transition-colors">
+                        <ChevronRight className="h-4 w-4" />
+                    </button>
                 </div>
             </div>
 
             {/* Countdown Hero */}
-            <div className="flex flex-col items-center justify-center py-10 space-y-2">
+            <div className="flex flex-col items-center justify-center py-8 space-y-2">
                 <div className="text-lg font-medium text-muted-foreground">
-                    {nextPrayerName} Vaktine Kalan
+                    {ramadanMode && nextPrayerName === 'Akşam' ? 'İftara Kalan Süre' : `${nextPrayerName} Vaktine Kalan`}
                 </div>
                 <div className="text-6xl font-bold tracking-tighter tabular-nums text-foreground">
                     {timeLeft || "--:--:--"}
                 </div>
+            </div>
+
+            <div className="px-1">
+                <HadithCard />
             </div>
 
             {/* Grid */}
@@ -99,8 +126,8 @@ export function Dashboard() {
                         <PrayerTimeCard name="Güneş" time={timings.Sunrise.split(' ')[0]} isNext={nextPrayerName === 'Güneş'} />
                         <PrayerTimeCard name="Öğle" time={timings.Dhuhr.split(' ')[0]} isNext={nextPrayerName === 'Öğle'} />
                         <PrayerTimeCard name="İkindi" time={timings.Asr.split(' ')[0]} isNext={nextPrayerName === 'İkindi'} />
-                        <PrayerTimeCard name="Akşam" time={timings.Maghrib.split(' ')[0]} isNext={nextPrayerName === 'Akşam'} />
-                        <PrayerTimeCard name="Yatsı" time={timings.Isha.split(' ')[0]} isNext={nextPrayerName === 'Yatsı'} />
+                        <PrayerTimeCard name={ramadanMode ? "İftar" : "Akşam"} time={timings.Maghrib.split(' ')[0]} isNext={nextPrayerName === 'Akşam'} />
+                        <PrayerTimeCard name={ramadanMode ? "Teravih" : "Yatsı"} time={timings.Isha.split(' ')[0]} isNext={nextPrayerName === 'Yatsı'} />
                     </>
                 )}
             </div>

@@ -5,6 +5,7 @@ import { PrayerTimes, HijriDate, GregorianDate } from "../types/api";
 interface UsePrayerTimesProps {
     latitude: number | null;
     longitude: number | null;
+    date?: Date;
 }
 
 interface PrayerTimesState {
@@ -17,7 +18,7 @@ interface PrayerTimesState {
     error: string | null;
 }
 
-export function usePrayerTimes({ latitude, longitude }: UsePrayerTimesProps) {
+export function usePrayerTimes({ latitude, longitude, date }: UsePrayerTimesProps) {
     const [state, setState] = useState<PrayerTimesState>({
         timings: null,
         date: null,
@@ -33,7 +34,9 @@ export function usePrayerTimes({ latitude, longitude }: UsePrayerTimesProps) {
         const fetchTimes = async () => {
             setState((prev) => ({ ...prev, loading: true, error: null }));
             try {
-                const response = await getPrayerTimesByCoordinates(latitude, longitude);
+                // Pass the selected date (or default to today if undefined)
+                const targetDate = date || new Date();
+                const response = await getPrayerTimesByCoordinates(latitude, longitude, targetDate);
                 setState({
                     timings: response.data.timings,
                     date: response.data.date,
@@ -50,7 +53,7 @@ export function usePrayerTimes({ latitude, longitude }: UsePrayerTimesProps) {
         };
 
         fetchTimes();
-    }, [latitude, longitude]);
+    }, [latitude, longitude, date]);
 
     return state;
 }
