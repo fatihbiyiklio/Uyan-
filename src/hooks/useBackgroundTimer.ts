@@ -14,23 +14,16 @@ export function useBackgroundTimer() {
     // Derive next prayer
     const nextPrayer = timings ? getNextPrayer(timings) : null;
     const { sendNotification } = useNotification();
-    const audioRef = useRef<HTMLAudioElement | null>(null);
 
-    // Initial setup of silent audio
+    // Use AudioContext for more robust background execution
+    const audioContextRef = useRef<AudioContext | null>(null);
+    const oscillatorRef = useRef<OscillatorNode | null>(null);
+    const isPlayingRef = useRef(false);
+
+    // Initial check for AudioContext support
     useEffect(() => {
-        // Slightly longer silent audio to prevent rapid looping issues
-        // 5 seconds of silence
-        const silentAudio = "data:audio/mp3;base64,SUQzBAAAAAAAI1RTS1UAAAAIAAABTGF2ZjU5LjE2LjEwMAAAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAAAAAAAAAAASW5mbwAAAA8AAAAEAAABIADAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMD//////////////////////////////////////////////////////////////////8AAABMYXZjNTkuMTguMTAwAAAAAAAAAAAAAAJCCQAAAAAASAAAAAAAASAA//OEAAAAAAAAAAAAAAJAAAAAAAAAAASAAAAAAAASAAAIABBAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAJAAAAAAAAAAASAAAAAAAASAAAIABBAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAJAAAAAAAAAAASAAAAAAAASAAAIABBAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAJAAAAAAAAAAASAAAAAAAASAAAIABBAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAJAAAAAAAAAAASAAAAAAAASAAAIABBAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAJAAAAAAAAAAASAAAAAAAASAAAIABBAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAJAAAAAAAAAAASAAAAAAAASAAAIABBAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAJAAAAAAAAAAASAAAAAAAASAAAIABBAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAJAAAAAAAAAAASAAAAAAAASAAAIABBAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAJAAAAAAAAAAASAAAAAAAASAAAIABBAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAJAAAAAAAAAAASAAAAAAAASAAAIABBAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAJAAAAAAAAAAASAAAAAAAASAAAIABBAAAAAAAAAAAAA//OEAAAAAAAAAAAAAAJAAAAAAAAAAASAAAAAAAASAAAIABBAAAAAAAAAAAAA";
-
-        const audio = new Audio(silentAudio);
-        audio.loop = true;
-        audioRef.current = audio;
-
         return () => {
-            if (audioRef.current) {
-                audioRef.current.pause();
-                audioRef.current = null;
-            }
+            stopAudio();
         };
     }, []);
 
@@ -50,10 +43,10 @@ export function useBackgroundTimer() {
                 ]
             });
 
-            // Update detailed position state (ProgressBar support for Android 13+ / iOS 16+)
+            // Update detailed position state (ProgressBar)
             if (navigator.mediaSession.setPositionState) {
                 navigator.mediaSession.setPositionState({
-                    duration: 86400, // Arbitrary long duration
+                    duration: 86400,
                     playbackRate: 1,
                     position: 0
                 });
@@ -61,43 +54,86 @@ export function useBackgroundTimer() {
         };
 
         const interval = setInterval(() => {
-            // Forcing title update every second is the only way to "tick" on some lock screens
-            // without seeking. 
             updateMetadata();
         }, 1000);
 
         updateMetadata();
 
-        // Action handlers are required for controls to appear
+        // Action handlers
         try {
-            navigator.mediaSession.setActionHandler('play', () => audioRef.current?.play());
-            navigator.mediaSession.setActionHandler('pause', () => audioRef.current?.pause());
-            navigator.mediaSession.setActionHandler('stop', () => audioRef.current?.pause());
-            navigator.mediaSession.setActionHandler('seekto', () => { }); // No-op but required for some UI
+            navigator.mediaSession.setActionHandler('play', () => {
+                // Resume context if suspended
+                if (audioContextRef.current?.state === 'suspended') {
+                    audioContextRef.current.resume();
+                }
+            });
+            navigator.mediaSession.setActionHandler('pause', () => {
+                // Do nothing or suspend to save battery, but user wants "permanent"
+                // so we might just keep it running.
+            });
+            navigator.mediaSession.setActionHandler('stop', () => stopAudio());
+            navigator.mediaSession.setActionHandler('seekto', () => { });
         } catch (e) { console.error(e); }
 
         return () => clearInterval(interval);
     }, [nextPrayer]);
 
+    const stopAudio = () => {
+        try {
+            if (oscillatorRef.current) {
+                oscillatorRef.current.stop();
+                oscillatorRef.current.disconnect();
+                oscillatorRef.current = null;
+            }
+            if (audioContextRef.current) {
+                audioContextRef.current.close();
+                audioContextRef.current = null;
+            }
+            isPlayingRef.current = false;
+        } catch (e) { console.error("Error stopping audio", e); }
+    };
+
     // Public method to start the engine
     const enableBackgroundMode = async () => {
-        if (audioRef.current) {
-            try {
-                await audioRef.current.play();
+        if (isPlayingRef.current) {
+            sendNotification("Arka Plan Modu Zaten Aktif", { body: "Sayaç çalışıyor." });
+            return;
+        }
 
-                // Explicitly set playback state
-                if ("mediaSession" in navigator) {
-                    navigator.mediaSession.playbackState = "playing";
-                }
+        try {
+            // Create Context
+            const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+            if (!AudioContextClass) return;
 
-                sendNotification("Arka Plan Modu Aktif", {
-                    body: "Sayaç kilit ekranında çalışıyor."
-                });
+            const ctx = new AudioContextClass();
+            audioContextRef.current = ctx;
 
-            } catch (e) {
-                console.error("Background audio play failed:", e);
-                alert("Arka plan modu için lütfen sayfaya dokunun.");
+            // Create Oscillator (silent but active)
+            const oscillator = ctx.createOscillator();
+            const gainNode = ctx.createGain();
+
+            // Very low gain, effectively silent but enough to keep hardware active
+            gainNode.gain.value = 0.0001;
+
+            oscillator.connect(gainNode);
+            gainNode.connect(ctx.destination);
+
+            oscillator.start();
+            oscillatorRef.current = oscillator;
+            isPlayingRef.current = true;
+
+            // Explicitly set playback state
+            if ("mediaSession" in navigator) {
+                navigator.mediaSession.playbackState = "playing";
             }
+
+            sendNotification("Arka Plan Modu Aktif", {
+                body: "Kilit ekranı sayacı başlatıldı."
+            });
+
+        } catch (e) {
+            console.error("Background audio start failed:", e);
+            alert("Arka plan modu başlatılamadı.");
         }
     };
 
