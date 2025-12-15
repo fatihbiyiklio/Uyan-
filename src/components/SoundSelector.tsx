@@ -3,10 +3,10 @@ import { useApp } from "../context/AppContext";
 import { Play, Check } from "lucide-react";
 
 const SOUNDS = [
-    { id: 'beep', name: 'Bip Sesi', url: 'https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3' },
-    { id: 'chime', name: 'Zil Sesi', url: 'https://assets.mixkit.co/active_storage/sfx/1202/1202-preview.mp3' },
-    { id: 'bird', name: 'Kuş Sesi', url: 'https://assets.mixkit.co/active_storage/sfx/2513/2513-preview.mp3' },
-    { id: 'water', name: 'Su Sesi', url: 'https://assets.mixkit.co/active_storage/sfx/209/209-preview.mp3' },
+    { id: 'beep', name: 'Bip Sesi', url: '/sounds/beep.mp3' },
+    { id: 'chime', name: 'Zil Sesi', url: '/sounds/chime.mp3' },
+    { id: 'bird', name: 'Kuş Sesi', url: '/sounds/bird.mp3' },
+    { id: 'water', name: 'Su Sesi', url: '/sounds/water.mp3' },
 ];
 
 export function SoundSelector() {
