@@ -9,24 +9,7 @@ import { SoundSelector } from "./SoundSelector";
 
 export function SettingsPage() {
     const { permission, requestPermission } = useNotification();
-    const { ramadanMode, setRamadanMode, enabledNotifications, toggleNotification } = useApp();
-    const [theme, setTheme] = useState<'light' | 'dark' | 'gray'>(() => {
-        if (typeof window !== 'undefined') {
-            const saved = localStorage.getItem('uyan_theme_mode');
-            if (saved === 'light' || saved === 'dark' || saved === 'gray') return saved;
-
-            if (document.documentElement.classList.contains('gray')) return 'gray';
-            return document.documentElement.classList.contains('dark') ? 'dark' : 'light';
-        }
-        return 'dark';
-    });
-
-    useEffect(() => {
-        const root = window.document.documentElement;
-        root.classList.remove('light', 'dark', 'gray');
-        root.classList.add(theme);
-        localStorage.setItem('uyan_theme_mode', theme); // Better persistence
-    }, [theme]);
+    const { ramadanMode, setRamadanMode, enabledNotifications, toggleNotification, theme, setTheme } = useApp();
 
     const clearData = () => {
         if (confirm("Konum verileri sıfırlanacak ve sayfa yenilenecek. Onaylıyor musunuz?")) {

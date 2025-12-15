@@ -32,3 +32,22 @@ export async function getCityFromCoordinates(lat: number, lng: number): Promise<
         return "Konum Algılandı";
     }
 }
+
+export async function getCoordinatesFromCity(query: string): Promise<{ latitude: number, longitude: number } | null> {
+    try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`);
+        if (!response.ok) return null;
+
+        const data = await response.json();
+        if (data && data.length > 0) {
+            return {
+                latitude: Number(data[0].lat),
+                longitude: Number(data[0].lon)
+            };
+        }
+        return null;
+    } catch (e) {
+        console.error("Geocoding failed", e);
+        return null;
+    }
+}

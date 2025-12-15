@@ -4,16 +4,19 @@ import { usePrayerTimes } from "../hooks/usePrayerTimes";
 import { getNextPrayer, formatTimeLeft } from "../utils/time";
 import { PrayerTimeCard } from "./PrayerTimeCard";
 import { Loader2, MapPin, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
-
 import { useNotification } from "../hooks/useNotification";
 import { useApp } from "../context/AppContext";
 import { getSoundUrl } from "./SoundSelector";
 import { HadithCard } from "./HadithCard";
+import { useBackgroundTimer } from "../hooks/useBackgroundTimer";
 
 export function Dashboard() {
     const { coords, loading: locLoading, error: locError, city } = useLocation();
     const { sound, ramadanMode, enabledNotifications } = useApp();
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+
+    // Background Timer Hook
+    const { enableBackgroundMode } = useBackgroundTimer();
 
     // Pass selectedDate to hook
     const { timings, date, loading: timesLoading, error: timesError } = usePrayerTimes({
@@ -30,10 +33,6 @@ export function Dashboard() {
         if (!timings) return;
 
         const timer = setInterval(() => {
-            // Only calculate countdown for 'today' to avoid confusion, or handle next dat logic.
-            // For simplicity, if selectedDate is not today, we might show "vakit geçti" or just static times.
-            // But let's keep countdown running based on loaded timings.
-
             const next = getNextPrayer(timings);
             if (next) {
                 setTimeLeft(formatTimeLeft(next.remainingSeconds));
@@ -51,7 +50,7 @@ export function Dashboard() {
         }, 1000);
 
         return () => clearInterval(timer);
-    }, [timings, sendNotification, sound]);
+    }, [timings, sendNotification, sound, enabledNotifications]);
 
     const changeDate = (days: number) => {
         const newDate = new Date(selectedDate);
@@ -108,13 +107,14 @@ export function Dashboard() {
             </div>
 
             {/* Countdown Hero */}
-            <div className="flex flex-col items-center justify-center py-8 space-y-2">
+            <div className="flex flex-col items-center justify-center py-8 space-y-2 relative group" onClick={enableBackgroundMode}>
                 <div className="text-lg font-medium text-muted-foreground">
                     {ramadanMode && nextPrayerName === 'Akşam' ? 'İftara Kalan Süre' : `${nextPrayerName} Vaktine Kalan`}
                 </div>
-                <div className="text-6xl font-bold tracking-tighter tabular-nums text-foreground">
+                <div className="text-6xl font-bold tracking-tighter tabular-nums text-foreground cursor-pointer select-none" title="Arka plan modunu aktifleştirmek için dokunun">
                     {timeLeft || "--:--:--"}
                 </div>
+                <p className="text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">Kilit ekranında görmek için dokunun</p>
             </div>
 
             <div className="px-1">

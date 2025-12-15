@@ -8,6 +8,7 @@ interface Coords {
 interface LocationData {
     mode: 'auto' | 'manual';
     city?: string;
+    district?: string;
     country?: string;
     coords: Coords | null;
 }
@@ -16,6 +17,7 @@ interface AppContextType {
     // Theme Mode (Light/Dark/Gray)
     theme: 'light' | 'dark' | 'gray';
     toggleTheme: () => void;
+    setTheme: (theme: 'light' | 'dark' | 'gray') => void;
 
     // Accent Color
     themeColor: string;
@@ -44,7 +46,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // --- Theme Mode ---
     const [theme, setTheme] = useState<'light' | 'dark' | 'gray'>(() => {
         if (typeof window !== 'undefined') {
-            return localStorage.getItem('theme') as 'light' | 'dark' | 'gray' || 'light';
+            const saved = localStorage.getItem('uyan_theme_mode');
+            if (saved === 'light' || saved === 'dark' || saved === 'gray') return saved;
+
+            // Auto detect system preference if no saved theme
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                return 'dark';
+            }
         }
         return 'light';
     });
@@ -53,7 +61,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const root = window.document.documentElement;
         root.classList.remove('light', 'dark', 'gray');
         root.classList.add(theme);
-        localStorage.setItem('theme', theme);
+        localStorage.setItem('uyan_theme_mode', theme);
     }, [theme]);
 
     const toggleTheme = () => {
@@ -152,6 +160,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         <AppContext.Provider value={{
             theme,
             toggleTheme,
+            setTheme,
             themeColor,
             setThemeColor,
             location,
