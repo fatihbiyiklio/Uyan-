@@ -7,6 +7,8 @@ const SOUNDS = [
     { id: 'chime', name: 'Zil Sesi', url: '/sounds/chime.mp3' },
     { id: 'bird', name: 'Kuş Sesi', url: '/sounds/bird.mp3' },
     { id: 'water', name: 'Su Sesi', url: '/sounds/water.mp3' },
+    { id: 'adhan_makkah', name: 'Ezan (Mekke)', url: '/sounds/adhan_makkah.mp3' },
+    { id: 'adhan_sabah', name: 'Sabah Ezanı', url: '/sounds/adhan_madina.mp3' }, // Using Madina as softer/Sabah alternative
 ];
 
 export function SoundSelector() {
