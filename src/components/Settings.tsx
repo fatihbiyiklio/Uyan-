@@ -9,7 +9,7 @@ import { SoundSelector } from "./SoundSelector";
 
 export function SettingsPage() {
     const { permission, requestPermission } = useNotification();
-    const { ramadanMode, setRamadanMode } = useApp();
+    const { ramadanMode, setRamadanMode, enabledNotifications, toggleNotification } = useApp();
     const [theme, setTheme] = useState<'light' | 'dark' | 'gray'>(() => {
         if (typeof window !== 'undefined') {
             const saved = localStorage.getItem('uyan_theme_mode');
@@ -94,18 +94,38 @@ export function SettingsPage() {
                     <LocationSelector />
                 </Card>
 
-                <Card className="p-4 flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
-                        <Bell className="h-5 w-5" />
-                        <span>Bildirimler</span>
+                <Card className="p-4 flex flex-col space-y-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                            <Bell className="h-5 w-5" />
+                            <span>Bildirimler</span>
+                        </div>
+                        <button
+                            onClick={requestPermission}
+                            disabled={permission === 'granted'}
+                            className="px-3 py-1 bg-secondary rounded-md text-sm font-medium transition-colors hover:bg-secondary/80 disabled:opacity-50"
+                        >
+                            {permission === 'granted' ? 'İzin Verildi' : permission === 'denied' ? 'Reddedildi' : 'İzin İste'}
+                        </button>
                     </div>
-                    <button
-                        onClick={requestPermission}
-                        disabled={permission === 'granted'}
-                        className="px-3 py-1 bg-secondary rounded-md text-sm font-medium transition-colors hover:bg-secondary/80 disabled:opacity-50"
-                    >
-                        {permission === 'granted' ? 'Açık' : permission === 'denied' ? 'Reddedildi' : 'Aktifleştir'}
-                    </button>
+
+                    {/* Per-Prayer Toggles */}
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t text-sm">
+                        {['İmsak', 'Güneş', 'Öğle', 'İkindi', 'Akşam', 'Yatsı'].map((prayer) => (
+                            <div key={prayer} className="flex items-center justify-between p-2 rounded-lg bg-secondary/30">
+                                <span>{prayer}</span>
+                                <label className="relative inline-flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        className="sr-only peer"
+                                        checked={enabledNotifications[prayer] ?? true}
+                                        onChange={() => toggleNotification(prayer)}
+                                    />
+                                    <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-primary"></div>
+                                </label>
+                            </div>
+                        ))}
+                    </div>
                 </Card>
 
                 <Card className="p-4 flex items-center space-x-3 text-destructive cursor-pointer hover:bg-destructive/10 transition-colors"

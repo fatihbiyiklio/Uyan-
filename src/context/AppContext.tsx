@@ -29,6 +29,10 @@ interface AppContextType {
     sound: string;
     setSound: (id: string) => void;
 
+    // Notifications
+    enabledNotifications: Record<string, boolean>;
+    toggleNotification: (key: string) => void;
+
     // Features
     ramadanMode: boolean;
     setRamadanMode: (enabled: boolean) => void;
@@ -100,9 +104,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return 'beep';
     });
 
+    // Default all true
+    const [enabledNotifications, setEnabledNotifications] = useState<Record<string, boolean>>(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('uyan_enabled_notifications');
+            if (saved) return JSON.parse(saved);
+        }
+        return {
+            'İmsak': true,
+            'Güneş': false, // No notification for sunrise usually
+            'Öğle': true,
+            'İkindi': true,
+            'Akşam': true,
+            'Yatsı': true,
+            'İftar': true,
+            'Sahur': true,
+            'Teravih': true
+        };
+    });
+
     const setSound = (id: string) => {
         setSoundState(id);
         localStorage.setItem('notificationSound', id);
+    };
+
+    const toggleNotification = (key: string) => {
+        setEnabledNotifications(prev => {
+            const next = { ...prev, [key]: !prev[key] };
+            localStorage.setItem('uyan_enabled_notifications', JSON.stringify(next));
+            return next;
+        });
     };
 
     // --- Ramadan Mode ---
@@ -128,7 +159,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             sound,
             setSound,
             ramadanMode,
-            setRamadanMode
+            setRamadanMode,
+            enabledNotifications,
+            toggleNotification
         }}>
             {children}
         </AppContext.Provider>

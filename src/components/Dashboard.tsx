@@ -12,7 +12,7 @@ import { HadithCard } from "./HadithCard";
 
 export function Dashboard() {
     const { coords, loading: locLoading, error: locError, city } = useLocation();
-    const { sound, ramadanMode } = useApp();
+    const { sound, ramadanMode, enabledNotifications } = useApp();
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
     // Pass selectedDate to hook
@@ -40,9 +40,12 @@ export function Dashboard() {
                 setNextPrayerName(next.name);
 
                 if (next.remainingSeconds === 0) {
-                    sendNotification(`${next.name} Vakti Girdi!`, { body: "Namaz vakti geldi." });
-                    const audioUrl = getSoundUrl(sound);
-                    new Audio(audioUrl).play().catch(e => console.log(e));
+                    // Check if notification is enabled for this prayer
+                    if (enabledNotifications[next.name]) {
+                        sendNotification(`${next.name} Vakti Girdi!`, { body: "Namaz vakti geldi." });
+                        const audioUrl = getSoundUrl(sound);
+                        new Audio(audioUrl).play().catch(e => console.log(e));
+                    }
                 }
             }
         }, 1000);
