@@ -26,21 +26,41 @@ export function QiblaCompass() {
     useEffect(() => {
         if (!permissionGranted) return;
 
-        const handleOrientation = (event: DeviceOrientationEvent) => {
-            // webkitCompassHeading for iOS, alpha for Android (approximate)
-            // @ts-ignore
-            let compass = event.webkitCompassHeading;
-            if (!compass && event.alpha !== null) {
+        const handleOrientation = (event: any) => {
+            let compass = null;
+
+            // iOS
+            if (event.webkitCompassHeading) {
+                compass = event.webkitCompassHeading;
+            }
+            // Android Absolute
+            else if (event.absolute && event.alpha !== null) {
+                compass = Math.abs(event.alpha - 360);
+            }
+            // Android Relative attempt (fallback, likely inaccurate for Qibla but shows rotation)
+            else if (event.alpha !== null) {
                 compass = Math.abs(event.alpha - 360);
             }
 
-            if (compass !== null && compass !== undefined) {
+            if (compass !== null) {
                 setHeading(compass);
             }
         };
 
-        window.addEventListener("deviceorientation", handleOrientation);
-        return () => window.removeEventListener("deviceorientation", handleOrientation);
+        // Try absolute first for Android
+        if ('ondeviceorientationabsolute' in (window as any)) {
+            (window as any).addEventListener('deviceorientationabsolute', handleOrientation);
+        } else {
+            window.addEventListener('deviceorientation', handleOrientation);
+        }
+
+        return () => {
+            if ('ondeviceorientationabsolute' in (window as any)) {
+                (window as any).removeEventListener('deviceorientationabsolute', handleOrientation);
+            } else {
+                window.removeEventListener('deviceorientation', handleOrientation);
+            }
+        };
     }, [permissionGranted]);
 
     const requestAccess = async () => {

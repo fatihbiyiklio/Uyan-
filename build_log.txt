@@ -1,0 +1,6 @@
+
+> uyan-app@0.0.0 build
+> tsc && vite build
+
+src/components/QiblaCompass.tsx(54,20): error TS2339: Property 'addEventListener' does not exist on type 'never'.
+src/components/QiblaCompass.tsx(61,24): error TS2339: Property 'removeEventListener' does not exist on type 'never'.
