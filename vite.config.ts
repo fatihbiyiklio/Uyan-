@@ -18,7 +18,7 @@ export default defineConfig({
                 skipWaiting: true,
                 globPatterns: ['**/*.{js,css,html,ico,png,svg,mp3,json}']
             },
-            includeAssets: ['favicon.ico', 'icon.svg', 'apple-touch-icon.png'],
+            includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
             manifest: {
                 name: 'Uyan! - Namaz Vakitleri & Kıble',
                 short_name: 'Uyan!',

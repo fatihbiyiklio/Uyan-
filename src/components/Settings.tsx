@@ -1,4 +1,4 @@
-import { Moon, Sun, RotateCcw, Bell } from "lucide-react";
+import { Moon, Sun, RotateCcw, Bell, ArrowDownCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Card } from "./ui/card";
 import { useNotification } from "../hooks/useNotification";
@@ -35,11 +35,45 @@ export function SettingsPage() {
         }
     };
 
+    // --- Install PWA Logic ---
+    const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+    useEffect(() => {
+        const handler = (e: any) => {
+            e.preventDefault();
+            setDeferredPrompt(e);
+        };
+        window.addEventListener('beforeinstallprompt', handler);
+        return () => window.removeEventListener('beforeinstallprompt', handler);
+    }, []);
+
+    const handleInstallClick = async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            setDeferredPrompt(null);
+        }
+    };
+
     return (
         <div className="space-y-6 max-w-md mx-auto">
             <h2 className="text-2xl font-bold">Ayarlar</h2>
 
+            {deferredPrompt && (
+                <Card className="p-4 bg-primary text-primary-foreground flex items-center justify-between cursor-pointer hover:opacity-90 transition-opacity" onClick={handleInstallClick}>
+                    <div className="flex items-center space-x-3">
+                        <ArrowDownCircle className="h-6 w-6" />
+                        <div className="flex flex-col">
+                            <span className="font-bold">Uygulamayı Yükle</span>
+                            <span className="text-xs opacity-90">Ana ekrana eklemek için dokunun</span>
+                        </div>
+                    </div>
+                </Card>
+            )}
+
             <div className="space-y-4">
+
                 <Card className="p-4 flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                         {theme === 'dark' ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
