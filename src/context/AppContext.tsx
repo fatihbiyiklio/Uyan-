@@ -5,7 +5,7 @@ interface Coords {
     longitude: number;
 }
 
-interface LocationData {
+export interface LocationData {
     mode: 'auto' | 'manual';
     city?: string;
     district?: string;
