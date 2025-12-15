@@ -8,7 +8,7 @@ export default defineConfig({
         react(),
         VitePWA({
             registerType: 'autoUpdate',
-            includeAssets: ['icon.svg'],
+            includeAssets: ['favicon.ico', 'icon.svg'],
             manifest: {
                 name: 'Uyan! - Namaz Vakitleri & Kıble',
                 short_name: 'Uyan!',
