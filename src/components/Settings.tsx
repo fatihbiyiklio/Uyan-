@@ -145,7 +145,10 @@ export function SettingsPage() {
                     <div className="pt-2">
                         <button
                             onClick={() => {
-                                sendNotification("Test Bildirimi", { body: "Bildirimler ve ses çalışıyor!" });
+                                sendNotification("Test Bildirimi", {
+                                    body: "Bildirimler ve ses çalışıyor!",
+                                    silent: true // Prevent system sound
+                                });
                                 const audioUrl = getSoundUrl(sound);
                                 new Audio(audioUrl).play().catch(e => console.log(e));
                             }}

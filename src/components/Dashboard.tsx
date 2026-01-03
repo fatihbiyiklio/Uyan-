@@ -51,7 +51,10 @@ export function Dashboard() {
                 if (isTargetDateToday && previousNextPrayerRef.current && previousNextPrayerRef.current !== next.name) {
                     const enteredPrayer = previousNextPrayerRef.current;
                     if (enabledNotifications[enteredPrayer]) {
-                        sendNotification(`${enteredPrayer} Vakti Girdi!`, { body: "Namaz vakti geldi." });
+                        sendNotification(`${enteredPrayer} Vakti Girdi!`, {
+                            body: "Namaz vakti geldi.",
+                            silent: true // Prevent system sound, we use our own audio
+                        });
                         const audioUrl = getSoundUrl(sound);
                         new Audio(audioUrl).play().catch(e => console.log(e));
                     }
