@@ -23,6 +23,35 @@ export function useLocation() {
     });
 
     useEffect(() => {
+        const fetchCityName = async (coords: Coords) => {
+            try {
+                console.log("Fetching city name for:", coords);
+                const { getCityFromCoordinates } = await import("../services/geocoding");
+                const cityName = await getCityFromCoordinates(coords.latitude, coords.longitude);
+                console.log("City name fetched:", cityName);
+
+                // Update Global State with City
+                setLocation({
+                    mode: 'auto',
+                    coords,
+                    city: cityName
+                });
+
+                setState(prev => ({
+                    ...prev,
+                    city: cityName,
+                    loading: false
+                }));
+            } catch (e) {
+                console.error("Failed to fetch city name:", e);
+                setState(prev => ({
+                    ...prev,
+                    city: prev.city === "Konum Belirleniyor..." ? "Konum Algılandı" : prev.city,
+                    loading: false
+                }));
+            }
+        };
+
         // If manual mode, use stored data
         if (location.mode === 'manual') {
             setState({
@@ -34,14 +63,20 @@ export function useLocation() {
             return;
         }
 
-        // IMPORTANT: If we already have coords in auto mode, don't fetch again
+        // AUTO MODE LOGIC
         if (location.mode === 'auto' && location.coords) {
-            setState({
-                coords: location.coords,
-                city: location.city || "Konum Algılandı",
-                error: null,
-                loading: false
-            });
+            // Already have coords? Check if we still have the placeholder city
+            if (location.city === "Konum Belirleniyor..." || !location.city) {
+                setState(prev => ({ ...prev, coords: location.coords, loading: true }));
+                fetchCityName(location.coords);
+            } else {
+                setState({
+                    coords: location.coords,
+                    city: location.city,
+                    error: null,
+                    loading: false
+                });
+            }
             return;
         }
 
@@ -54,14 +89,16 @@ export function useLocation() {
             return;
         }
 
+        console.log("Requesting current position...");
         navigator.geolocation.getCurrentPosition(
             async (position) => {
                 const newCoords = {
                     latitude: position.coords.latitude,
                     longitude: position.coords.longitude,
                 };
+                console.log("Current position received:", newCoords);
 
-                // 1. Update Global State
+                // 1. Update Global State with placeholder
                 setLocation({
                     mode: 'auto',
                     coords: newCoords,
@@ -73,29 +110,12 @@ export function useLocation() {
                     ...prev,
                     coords: newCoords,
                     error: null,
-                    loading: false,
+                    loading: true,
                     city: "Konum Belirleniyor..."
                 }));
 
-                // Fetch city name asynchronously
-                try {
-                    const { getCityFromCoordinates } = await import("../services/geocoding");
-                    const cityName = await getCityFromCoordinates(newCoords.latitude, newCoords.longitude);
-
-                    // 3. Update Global State with City
-                    setLocation({
-                        mode: 'auto',
-                        coords: newCoords,
-                        city: cityName
-                    });
-
-                    setState(prev => ({
-                        ...prev,
-                        city: cityName
-                    }));
-                } catch (e) {
-                    // Ignore error, keep placeholder
-                }
+                // 3. Fetch city name
+                fetchCityName(newCoords);
             },
             (error) => {
                 let errorMessage = "Konum alınamadı.";

@@ -12,7 +12,12 @@ export async function getCityFromCoordinates(lat: number, lng: number): Promise<
     try {
         const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10`,
-            { headers: { 'Accept-Language': 'tr' } }
+            {
+                headers: {
+                    'Accept-Language': 'tr',
+                    'User-Agent': 'UyanApp/1.0'
+                }
+            }
         );
         if (!response.ok) return "Konum Algılandı";
 

@@ -125,69 +125,45 @@ export function useBackgroundTimer() {
     };
 
     const updatePersistentNotification = async () => {
-        if (!nextPrayer) {
-            console.warn("Cannot update notification: no next prayer data");
+        if (!nextPrayer || !timings) {
+            console.warn("Cannot update notification: missing nextPrayer or timings");
             return;
         }
 
-        console.log("Attempting to show persistent notification...");
-        console.log("Next prayer:", nextPrayer.name, "Remaining:", nextPrayer.remainingSeconds);
-
         try {
-            // Check if Service Workers are supported
-            if (!('serviceWorker' in navigator)) {
-                console.error("Service Workers not supported");
-                return;
-            }
+            if (!('serviceWorker' in navigator)) return;
 
-            console.log("Waiting for Service Worker to be ready...");
-            const registration = await navigator.serviceWorker.ready;
-
-            if (!registration) {
-                console.error("Service Worker registration is null");
-                return;
-            }
-
-            console.log("Service Worker is ready:", registration);
+            const registration = await navigator.serviceWorker.getRegistration() || await navigator.serviceWorker.ready;
+            if (!registration) return;
 
             const timeLeft = formatTimeLeft(nextPrayer.remainingSeconds);
 
-            // Build prayer times list for notification body
-            const prayerTimesList = timings ? [
+            // Format prayer times as a list
+            const prayerLines = [
                 `İmsak: ${timings.Fajr.split(' ')[0]}`,
                 `Güneş: ${timings.Sunrise.split(' ')[0]}`,
                 `Öğle: ${timings.Dhuhr.split(' ')[0]}`,
                 `İkindi: ${timings.Asr.split(' ')[0]}`,
                 `Akşam: ${timings.Maghrib.split(' ')[0]}`,
                 `Yatsı: ${timings.Isha.split(' ')[0]}`
-            ].join(' | ') : '';
+            ].join(' | ');
 
-            const notificationOptions: NotificationOptions = {
-                body: `${nextPrayer.name}'a ${timeLeft} kaldı\n\n${prayerTimesList}`,
+            await registration.showNotification('🕌 Namaz Vakti Sayacı', {
+                body: `${nextPrayer.name}'a ${timeLeft} kaldı\n${prayerLines}`,
                 icon: '/icon-192.png',
                 badge: '/icon-192.png',
                 tag: 'lock-screen-timer',
                 requireInteraction: true,
                 silent: true,
+                renotify: false,
                 data: {
                     prayerName: nextPrayer.name,
                     remainingSeconds: nextPrayer.remainingSeconds,
-                    timings: timings
+                    timestamp: Date.now()
                 }
-            };
-
-            console.log("Calling showNotification with options:", notificationOptions);
-
-            await registration.showNotification('🕌 Namaz Vakti Sayacı', notificationOptions);
-
-            console.log("Notification shown successfully");
-
+            } as any);
         } catch (e) {
-            console.error("CRITICAL: Failed to update persistent notification:", e);
-            console.error("Error details:", {
-                message: e instanceof Error ? e.message : String(e),
-                stack: e instanceof Error ? e.stack : undefined
-            });
+            console.error("Persistent notification update failed:", e);
         }
     };
 
