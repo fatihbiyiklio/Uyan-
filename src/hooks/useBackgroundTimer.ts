@@ -151,8 +151,19 @@ export function useBackgroundTimer() {
             console.log("Service Worker is ready:", registration);
 
             const timeLeft = formatTimeLeft(nextPrayer.remainingSeconds);
+
+            // Build prayer times list for notification body
+            const prayerTimesList = timings ? [
+                `İmsak: ${timings.Fajr.split(' ')[0]}`,
+                `Güneş: ${timings.Sunrise.split(' ')[0]}`,
+                `Öğle: ${timings.Dhuhr.split(' ')[0]}`,
+                `İkindi: ${timings.Asr.split(' ')[0]}`,
+                `Akşam: ${timings.Maghrib.split(' ')[0]}`,
+                `Yatsı: ${timings.Isha.split(' ')[0]}`
+            ].join(' | ') : '';
+
             const notificationOptions: NotificationOptions = {
-                body: `Sonraki: ${nextPrayer.name} | Kalan: ${timeLeft}`,
+                body: `${nextPrayer.name}'a ${timeLeft} kaldı\n\n${prayerTimesList}`,
                 icon: '/icon-192.png',
                 badge: '/icon-192.png',
                 tag: 'lock-screen-timer',
@@ -160,7 +171,8 @@ export function useBackgroundTimer() {
                 silent: true,
                 data: {
                     prayerName: nextPrayer.name,
-                    remainingSeconds: nextPrayer.remainingSeconds
+                    remainingSeconds: nextPrayer.remainingSeconds,
+                    timings: timings
                 }
             };
 
