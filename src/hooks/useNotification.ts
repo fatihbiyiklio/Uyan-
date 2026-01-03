@@ -15,8 +15,23 @@ export function useNotification() {
         setPermission(result);
     }, []);
 
-    const sendNotification = useCallback((title: string, options?: NotificationOptions) => {
+    const sendNotification = useCallback(async (title: string, options?: NotificationOptions) => {
         if (permission === 'granted') {
+            try {
+                // Try to use Service Worker first (better for mobile)
+                if ('serviceWorker' in navigator) {
+                    const registration = await navigator.serviceWorker.ready;
+                    if (registration) {
+                        // showNotification requires the service worker to be active
+                        await registration.showNotification(title, options);
+                        return;
+                    }
+                }
+            } catch (e) {
+                console.warn("Service Worker notification failed, falling back to standard API", e);
+            }
+
+            // Fallback to standard API
             new Notification(title, options);
         }
     }, [permission]);
