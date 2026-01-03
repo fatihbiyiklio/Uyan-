@@ -125,28 +125,57 @@ export function useBackgroundTimer() {
     };
 
     const updatePersistentNotification = async () => {
-        if (!nextPrayer) return;
+        if (!nextPrayer) {
+            console.warn("Cannot update notification: no next prayer data");
+            return;
+        }
+
+        console.log("Attempting to show persistent notification...");
+        console.log("Next prayer:", nextPrayer.name, "Remaining:", nextPrayer.remainingSeconds);
 
         try {
-            if ('serviceWorker' in navigator) {
-                const registration = await navigator.serviceWorker.ready;
-                const timeLeft = formatTimeLeft(nextPrayer.remainingSeconds);
-
-                await registration.showNotification('🕌 Namaz Vakti Sayacı', {
-                    body: `Sonraki: ${nextPrayer.name} | Kalan: ${timeLeft}`,
-                    icon: '/icon-192.png',
-                    badge: '/icon-192.png',
-                    tag: 'lock-screen-timer',
-                    requireInteraction: true,
-                    silent: true,
-                    data: {
-                        prayerName: nextPrayer.name,
-                        remainingSeconds: nextPrayer.remainingSeconds
-                    }
-                });
+            // Check if Service Workers are supported
+            if (!('serviceWorker' in navigator)) {
+                console.error("Service Workers not supported");
+                return;
             }
+
+            console.log("Waiting for Service Worker to be ready...");
+            const registration = await navigator.serviceWorker.ready;
+
+            if (!registration) {
+                console.error("Service Worker registration is null");
+                return;
+            }
+
+            console.log("Service Worker is ready:", registration);
+
+            const timeLeft = formatTimeLeft(nextPrayer.remainingSeconds);
+            const notificationOptions: NotificationOptions = {
+                body: `Sonraki: ${nextPrayer.name} | Kalan: ${timeLeft}`,
+                icon: '/icon-192.png',
+                badge: '/icon-192.png',
+                tag: 'lock-screen-timer',
+                requireInteraction: true,
+                silent: true,
+                data: {
+                    prayerName: nextPrayer.name,
+                    remainingSeconds: nextPrayer.remainingSeconds
+                }
+            };
+
+            console.log("Calling showNotification with options:", notificationOptions);
+
+            await registration.showNotification('🕌 Namaz Vakti Sayacı', notificationOptions);
+
+            console.log("Notification shown successfully");
+
         } catch (e) {
-            console.error("Failed to update persistent notification", e);
+            console.error("CRITICAL: Failed to update persistent notification:", e);
+            console.error("Error details:", {
+                message: e instanceof Error ? e.message : String(e),
+                stack: e instanceof Error ? e.stack : undefined
+            });
         }
     };
 
@@ -156,6 +185,17 @@ export function useBackgroundTimer() {
 
         if (isPlayingRef.current) {
             sendNotification("Arka Plan Modu Zaten Aktif", { body: "Sayaç çalışıyor.", silent: true });
+            return;
+        }
+
+        // CRITICAL: Check notification permission first
+        if (!("Notification" in window)) {
+            alert("Tarayıcınız bildirimleri desteklemiyor.");
+            return;
+        }
+
+        if (Notification.permission !== 'granted') {
+            alert("Lütfen önce Ayarlar'dan bildirim iznini açın.");
             return;
         }
 
