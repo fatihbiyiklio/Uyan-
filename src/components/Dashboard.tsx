@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useLocation } from "../hooks/useLocation";
 import { usePrayerTimes } from "../hooks/usePrayerTimes";
 import { getNextPrayer, formatTimeLeft } from "../utils/time";
@@ -29,28 +29,40 @@ export function Dashboard() {
     const [nextPrayerName, setNextPrayerName] = useState<string>("");
     const { sendNotification } = useNotification();
 
+    // Store the next prayer name to detect changes (which means a prayer time has entered)
+    // Initialize with null to avoid triggering on first load
+    const previousNextPrayerRef = useRef<string | null>(null);
+
     useEffect(() => {
         if (!timings) return;
 
         const timer = setInterval(() => {
+            const now = new Date();
+            // Verify if we are looking at today's prayer times
+            const isTargetDateToday = selectedDate.toDateString() === now.toDateString();
+
             const next = getNextPrayer(timings);
             if (next) {
                 setTimeLeft(formatTimeLeft(next.remainingSeconds));
                 setNextPrayerName(next.name);
 
-                if (next.remainingSeconds === 0) {
-                    // Check if notification is enabled for this prayer
-                    if (enabledNotifications[next.name]) {
-                        sendNotification(`${next.name} Vakti Girdi!`, { body: "Namaz vakti geldi." });
+                // Check if the "next prayer" has changed. 
+                // If it changed from "A" to "B", it means time "A" has just entered.
+                if (isTargetDateToday && previousNextPrayerRef.current && previousNextPrayerRef.current !== next.name) {
+                    const enteredPrayer = previousNextPrayerRef.current;
+                    if (enabledNotifications[enteredPrayer]) {
+                        sendNotification(`${enteredPrayer} Vakti Girdi!`, { body: "Namaz vakti geldi." });
                         const audioUrl = getSoundUrl(sound);
                         new Audio(audioUrl).play().catch(e => console.log(e));
                     }
                 }
+
+                previousNextPrayerRef.current = next.name;
             }
         }, 1000);
 
         return () => clearInterval(timer);
-    }, [timings, sendNotification, sound, enabledNotifications]);
+    }, [timings, sendNotification, sound, enabledNotifications, selectedDate]);
 
     const changeDate = (days: number) => {
         const newDate = new Date(selectedDate);

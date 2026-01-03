@@ -5,11 +5,11 @@ import { useNotification } from "../hooks/useNotification";
 import { useApp } from "../context/AppContext";
 import { ThemeSelector } from "./ThemeSelector";
 import { LocationSelector } from "./LocationSelector";
-import { SoundSelector } from "./SoundSelector";
+import { SoundSelector, getSoundUrl } from "./SoundSelector";
 
 export function SettingsPage() {
-    const { permission, requestPermission } = useNotification();
-    const { ramadanMode, setRamadanMode, enabledNotifications, toggleNotification, theme, setTheme, backgroundKeepAlive, setBackgroundKeepAlive } = useApp();
+    const { permission, requestPermission, sendNotification } = useNotification();
+    const { sound, ramadanMode, setRamadanMode, enabledNotifications, toggleNotification, theme, setTheme, backgroundKeepAlive, setBackgroundKeepAlive } = useApp();
 
     const clearData = () => {
         if (confirm("Konum verileri sıfırlanacak ve sayfa yenilenecek. Onaylıyor musunuz?")) {
@@ -139,6 +139,19 @@ export function SettingsPage() {
                             className="px-3 py-1 bg-secondary rounded-md text-sm font-medium transition-colors hover:bg-secondary/80 disabled:opacity-50"
                         >
                             {permission === 'granted' ? 'İzin Verildi' : permission === 'denied' ? 'Reddedildi' : 'İzin İste'}
+                        </button>
+                    </div>
+
+                    <div className="pt-2">
+                        <button
+                            onClick={() => {
+                                sendNotification("Test Bildirimi", { body: "Bildirimler ve ses çalışıyor!" });
+                                const audioUrl = getSoundUrl(sound);
+                                new Audio(audioUrl).play().catch(e => console.log(e));
+                            }}
+                            className="w-full py-2 text-sm bg-primary/10 text-primary rounded-md hover:bg-primary/20 transition-colors"
+                        >
+                            Test Bildirimi Gönder
                         </button>
                     </div>
 
