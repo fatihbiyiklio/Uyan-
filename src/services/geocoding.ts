@@ -10,7 +10,10 @@ interface Address {
 
 export async function getCityFromCoordinates(lat: number, lng: number): Promise<string> {
     try {
-        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10`);
+        const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=10`,
+            { headers: { 'Accept-Language': 'tr' } }
+        );
         if (!response.ok) return "Konum Algılandı";
 
         const data = await response.json();
