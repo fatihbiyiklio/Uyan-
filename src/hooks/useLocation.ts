@@ -18,7 +18,7 @@ export function useLocation() {
     const [state, setState] = useState<LocationState>({
         coords: location.coords,
         error: null,
-        loading: location.mode === 'auto',
+        loading: location.mode === 'auto' && !location.coords,
         city: location.city
     });
 
@@ -28,6 +28,17 @@ export function useLocation() {
             setState({
                 coords: location.coords,
                 city: location.city,
+                error: null,
+                loading: false
+            });
+            return;
+        }
+
+        // IMPORTANT: If we already have coords in auto mode, don't fetch again
+        if (location.mode === 'auto' && location.coords) {
+            setState({
+                coords: location.coords,
+                city: location.city || "Konum Algılandı",
                 error: null,
                 loading: false
             });
@@ -111,7 +122,7 @@ export function useLocation() {
                 maximumAge: 0
             }
         );
-    }, [location.mode, setLocation]);
+    }, [location.mode, location.coords, setLocation]);
 
     return state;
 }
