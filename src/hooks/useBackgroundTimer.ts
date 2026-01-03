@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { usePrayerTimes } from './usePrayerTimes';
 import { useApp } from '../context/AppContext';
-import { getNextPrayer } from '../utils/time';
+import { getNextPrayer, formatTimeLeft } from '../utils/time';
 import { useNotification } from './useNotification';
 
 export function useBackgroundTimer() {
@@ -19,10 +19,12 @@ export function useBackgroundTimer() {
     const audioContextRef = useRef<AudioContext | null>(null);
     const oscillatorRef = useRef<OscillatorNode | null>(null);
     const isPlayingRef = useRef(false);
+    const notificationIntervalRef = useRef<number | null>(null);
 
     useEffect(() => {
         if (!backgroundKeepAlive) {
             stopAudio();
+            clearPersistentNotification();
         }
         return () => {
             // Cleanup on unmount only if we want to stop it when leaving component
@@ -47,7 +49,7 @@ export function useBackgroundTimer() {
             // Update textual information
             navigator.mediaSession.metadata = new MediaMetadata({
                 title: `${nextPrayer.name} Vaktine`,
-                artist: `${nextPrayer.remainingSeconds} saniye kaldı`,
+                artist: `${formatTimeLeft(nextPrayer.remainingSeconds)} kaldı`,
                 album: "Uyan! Namaz Vakitleri",
                 artwork: [
                     { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
@@ -90,6 +92,23 @@ export function useBackgroundTimer() {
         return () => clearInterval(interval);
     }, [nextPrayer]);
 
+    const clearPersistentNotification = async () => {
+        try {
+            if ('serviceWorker' in navigator) {
+                const registration = await navigator.serviceWorker.ready;
+                const notifications = await registration.getNotifications({ tag: 'lock-screen-timer' });
+                notifications.forEach(notification => notification.close());
+            }
+        } catch (e) {
+            console.error("Failed to clear notification", e);
+        }
+
+        if (notificationIntervalRef.current) {
+            clearInterval(notificationIntervalRef.current);
+            notificationIntervalRef.current = null;
+        }
+    };
+
     const stopAudio = () => {
         try {
             if (oscillatorRef.current) {
@@ -105,12 +124,38 @@ export function useBackgroundTimer() {
         } catch (e) { console.error("Error stopping audio", e); }
     };
 
+    const updatePersistentNotification = async () => {
+        if (!nextPrayer) return;
+
+        try {
+            if ('serviceWorker' in navigator) {
+                const registration = await navigator.serviceWorker.ready;
+                const timeLeft = formatTimeLeft(nextPrayer.remainingSeconds);
+
+                await registration.showNotification('🕌 Namaz Vakti Sayacı', {
+                    body: `Sonraki: ${nextPrayer.name} | Kalan: ${timeLeft}`,
+                    icon: '/icon-192.png',
+                    badge: '/icon-192.png',
+                    tag: 'lock-screen-timer',
+                    requireInteraction: true,
+                    silent: true,
+                    data: {
+                        prayerName: nextPrayer.name,
+                        remainingSeconds: nextPrayer.remainingSeconds
+                    }
+                });
+            }
+        } catch (e) {
+            console.error("Failed to update persistent notification", e);
+        }
+    };
+
     // Public method to start the engine
     const enableBackgroundMode = async () => {
         if (!backgroundKeepAlive) return;
 
         if (isPlayingRef.current) {
-            sendNotification("Arka Plan Modu Zaten Aktif", { body: "Sayaç çalışıyor." });
+            sendNotification("Arka Plan Modu Zaten Aktif", { body: "Sayaç çalışıyor.", silent: true });
             return;
         }
 
@@ -141,8 +186,17 @@ export function useBackgroundTimer() {
                 navigator.mediaSession.playbackState = "playing";
             }
 
+            // Start persistent notification
+            await updatePersistentNotification();
+
+            // Update notification every second
+            notificationIntervalRef.current = window.setInterval(() => {
+                updatePersistentNotification();
+            }, 1000);
+
             sendNotification("Arka Plan Modu Aktif", {
-                body: "Kilit ekranı sayacı başlatıldı."
+                body: "Kilit ekranı sayacı başlatıldı.",
+                silent: true
             });
 
         } catch (e) {
