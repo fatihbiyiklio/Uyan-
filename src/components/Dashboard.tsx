@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useLocation } from "../hooks/useLocation";
-import { usePrayerTimes } from "../hooks/usePrayerTimes";
+// import { usePrayerTimes } from "../hooks/usePrayerTimes"; // Removed in favor of global state
 import { getNextPrayer, formatTimeLeft } from "../utils/time";
 import { PrayerTimeCard } from "./PrayerTimeCard";
 import { Loader2, MapPin, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
@@ -11,19 +11,24 @@ import { HadithCard } from "./HadithCard";
 import { useBackgroundTimer } from "../hooks/useBackgroundTimer";
 
 export function Dashboard() {
-    const { coords, loading: locLoading, error: locError, city } = useLocation();
-    const { sound, ramadanMode, enabledNotifications } = useApp();
-    const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+    const { loading: locLoading, error: locError, city } = useLocation();
+    const {
+        sound,
+        ramadanMode,
+        enabledNotifications,
+        // Global Prayer State
+        prayerData,
+        selectedDate,
+        setSelectedDate,
+        loading: timesLoading,
+        error: timesError
+    } = useApp();
 
     // Background Timer Hook
     const { enableBackgroundMode } = useBackgroundTimer();
 
-    // Pass selectedDate to hook
-    const { timings, date, loading: timesLoading, error: timesError } = usePrayerTimes({
-        latitude: coords?.latitude ?? null,
-        longitude: coords?.longitude ?? null,
-        date: selectedDate
-    });
+    // Destructure for easier access
+    const { timings, date } = prayerData;
 
     const [timeLeft, setTimeLeft] = useState<string>("");
     const [nextPrayerName, setNextPrayerName] = useState<string>("");

@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
+import { PrayerTimes, HijriDate, GregorianDate } from "../types/api";
+import { getPrayerTimesByCoordinates } from "../services/api";
 
 interface Coords {
     latitude: number;
@@ -41,6 +43,19 @@ interface AppContextType {
     // Background Mode (Battery Intensive)
     backgroundKeepAlive: boolean;
     setBackgroundKeepAlive: (enabled: boolean) => void;
+
+    // Prayer Times (Global State for Persistence)
+    prayerData: {
+        timings: PrayerTimes | null;
+        date: {
+            hijri: HijriDate;
+            gregorian: GregorianDate;
+        } | null;
+    };
+    selectedDate: Date;
+    setSelectedDate: (date: Date) => void;
+    loading: boolean;
+    error: string | null;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -171,6 +186,39 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('backgroundKeepAlive', String(backgroundKeepAlive));
     }, [backgroundKeepAlive]);
 
+    // --- Prayer Times Logic (Global) ---
+    const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+    const [prayerData, setPrayerData] = useState<AppContextType['prayerData']>({ timings: null, date: null });
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchTimes = async () => {
+            // Only fetch if we have coordinates
+            if (!location.coords) return;
+
+            setLoading(true);
+            setError(null);
+            try {
+                const response = await getPrayerTimesByCoordinates(
+                    location.coords.latitude,
+                    location.coords.longitude,
+                    selectedDate
+                );
+                setPrayerData({
+                    timings: response.data.timings,
+                    date: response.data.date
+                });
+            } catch (err) {
+                setError(err instanceof Error ? err.message : "Vakitler alınamadı");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchTimes();
+    }, [location.coords, selectedDate]);
+
     return (
         <AppContext.Provider value={{
             theme,
@@ -187,7 +235,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             enabledNotifications,
             toggleNotification,
             backgroundKeepAlive,
-            setBackgroundKeepAlive
+            setBackgroundKeepAlive,
+            prayerData,
+            selectedDate,
+            setSelectedDate,
+            loading,
+            error
         }}>
             {children}
         </AppContext.Provider>
